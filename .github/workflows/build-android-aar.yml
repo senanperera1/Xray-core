@@ -1,4 +1,4 @@
-name: Build Xray AAR (Full Functionality)
+name: Build Xray AAR (Full)
 
 on:
   workflow_dispatch:
@@ -11,10 +11,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         sudo apt update
-        sudo apt install -y unzip git build-essential openjdk-17-jdk
+        sudo apt install -y openjdk-17-jdk unzip git build-essential
 
     - name: Install Go
       uses: actions/setup-go@v5
@@ -24,6 +24,7 @@ jobs:
     - name: Install gomobile
       run: |
         go install golang.org/x/mobile/cmd/gomobile@latest
+        go install golang.org/x/mobile/cmd/gobind@latest
         gomobile init
 
     - name: Clone Xray-core
@@ -32,10 +33,9 @@ jobs:
         cd xray-core
         git submodule update --init --recursive
 
-    - name: Build AAR using gomobile bind
+    - name: Build AAR
       run: |
-        cd xray-core
-        gomobile bind -v -target=android -androidapi=21 -o ../xray.aar ./mobile
+        gomobile bind -v -target=android -androidapi=21 -o xray.aar ./mobile
 
     - name: Upload AAR
       uses: actions/upload-artifact@v4
