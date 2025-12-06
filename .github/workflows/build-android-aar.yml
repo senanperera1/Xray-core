@@ -1,94 +1,44 @@
-name: Build Xray-core AAR
+name: Build Xray AAR (Full Functionality)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout builder repo
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y unzip git wget build-essential
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y unzip git build-essential openjdk-17-jdk
 
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.22'
 
-      - name: Install Android NDK
-        uses: android-actions/setup-android@v3
-        with:
-          ndk: 26.1.10909125
+    - name: Install gomobile
+      run: |
+        go install golang.org/x/mobile/cmd/gomobile@latest
+        gomobile init
 
-      - name: Clone Xray-core
-        run: |
-          git clone https://github.com/XTLS/Xray-core.git xray-core
-          cd xray-core
-          git submodule update --init --recursive
+    - name: Clone Xray-core
+      run: |
+        git clone https://github.com/XTLS/Xray-core.git xray-core
+        cd xray-core
+        git submodule update --init --recursive
 
-      - name: Build Xray-core (Android shared library)
-        run: |
-          cd xray-core
-          export ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME
+    - name: Build AAR using gomobile bind
+      run: |
+        cd xray-core
+        gomobile bind -v -target=android -androidapi=21 -o ../xray.aar ./mobile
 
-          # ABIs you want to build
-          ABIS=("armeabi-v7a" "arm64-v8a" "x86" "x86_64")
-
-          mkdir -p build/libs
-
-          for ABI in "${ABIS[@]}"; do
-            echo "Building for $ABI"
-
-            # Map ABI → NDK triple
-            case $ABI in
-              armeabi-v7a)
-                TRIPLE="armv7a-linux-androideabi"
-                API=21 ;;
-              arm64-v8a)
-                TRIPLE="aarch64-linux-android"
-                API=21 ;;
-              x86)
-                TRIPLE="i686-linux-android"
-                API=21 ;;
-              x86_64)
-                TRIPLE="x86_64-linux-android"
-                API=21 ;;
-            esac
-
-            CC=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${TRIPLE}${API}-clang
-
-            GOOS=android GOARCH=$(echo $ABI | sed 's/-.*//') \
-            CC=$CC \
-            CGO_ENABLED=1 \
-            go build -v -buildmode=c-shared -o "build/libs/$ABI/libxray.so" ./main
-          done
-
-      - name: Build AAR package
-        run: |
-          mkdir -p aar/jni
-          cp -R xray-core/build/libs/* aar/jni/
-
-          # Create minimal AndroidManifest + AAR structure
-          mkdir -p aar/classes
-          touch aar/classes/classes.jar
-
-          cat <<EOF > aar/AndroidManifest.xml
-          <manifest package="com.xray.core" />
-          EOF
-
-          cd aar
-          zip -r ../xray-core.aar .
-
-      - name: Upload AAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: xray-core-aar
-          path: xray-core.aar
+    - name: Upload AAR
+      uses: actions/upload-artifact@v4
+      with:
+        name: xray-full-aar
+        path: xray.aar
