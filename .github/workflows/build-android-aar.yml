@@ -1,4 +1,4 @@
-name: Build Xray AAR (Full)
+name: Build Xray AAR (Working Version)
 
 on:
   workflow_dispatch:
@@ -16,22 +16,20 @@ jobs:
         sudo apt update
         sudo apt install -y openjdk-17-jdk unzip git build-essential
 
-    - name: Install Go
+    - name: Install Go 1.20 (works with gomobile)
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: '1.20'
 
     - name: Install gomobile
       run: |
-        go install golang.org/x/mobile/cmd/gomobile@latest
-        go install golang.org/x/mobile/cmd/gobind@latest
+        go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20220722155209-4d6c5c0310d6
+        go install golang.org/x/mobile/cmd/gobind@v0.0.0-20220722155209-4d6c5c0310d6
         gomobile init
 
     - name: Clone Xray-core
       run: |
         git clone https://github.com/XTLS/Xray-core.git xray-core
-        cd xray-core
-        git submodule update --init --recursive
 
     - name: Build AAR
       run: |
