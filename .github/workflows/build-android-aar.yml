@@ -1,0 +1,39 @@
+name: Build Xray Android AAR (Official)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Xray-core
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+
+      - name: Build AAR
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      - name: Upload AAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: xray-aar
+          path: android/app/build/outputs/aar/*.aar
